@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux'
 import api from '../utils/api'
 import { Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
+import { toast } from 'react-toastify'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 function MoodSelector({ onChange, value }){
@@ -31,8 +32,11 @@ export default function Dashboard(){
   const [reminders, setReminders] = useState([])
   const [moodToday, setMoodToday] = useState('')
   const [moodHistory, setMoodHistory] = useState([]) // [{date:'YYYY-MM-DD', mood:'happy'}]
+  const [moodNote, setMoodNote] = useState('')
   const [symptomsToday, setSymptomsToday] = useState([]) // ['cramps','headache']
   const [symptomHistory, setSymptomHistory] = useState([]) // [{date, symptoms:[] }]
+  const [quickLog, setQuickLog] = useState({ period:false, flow:'medium', pain:3 })
+  const [dailyLogs, setDailyLogs] = useState({}) // { 'YYYY-MM-DD': { period, flow, pain } }
 
   // Load local mood history
   useEffect(()=>{
@@ -40,6 +44,12 @@ export default function Dashboard(){
     if(h) setMoodHistory(JSON.parse(h))
     const s = localStorage.getItem('symptomHistory')
     if(s) setSymptomHistory(JSON.parse(s))
+    const today = new Date().toISOString().slice(0,10)
+    const notes = JSON.parse(localStorage.getItem('moodNotes') || '{}')
+    if(notes[today]) setMoodNote(notes[today])
+  const daily = JSON.parse(localStorage.getItem('dailyLogs') || '{}')
+  setDailyLogs(daily)
+  if(daily[today]) setQuickLog(daily[today])
   },[])
 
   // Fetch reminders but tolerate API unavailability
@@ -64,6 +74,13 @@ export default function Dashboard(){
     localStorage.setItem('moodHistory', JSON.stringify(next))
   }
 
+  const saveMoodNote = ()=>{
+    const today = new Date().toISOString().slice(0,10)
+    const notes = JSON.parse(localStorage.getItem('moodNotes') || '{}')
+    notes[today] = moodNote
+    localStorage.setItem('moodNotes', JSON.stringify(notes))
+  }
+
   const toggleSymptom = (key)=>{
     const today = new Date().toISOString().slice(0,10)
     const current = new Set(symptomsToday)
@@ -73,6 +90,15 @@ export default function Dashboard(){
     const next = [...symptomHistory.filter(x=>x.date!==today), { date: today, symptoms: updated }]
     setSymptomHistory(next)
     localStorage.setItem('symptomHistory', JSON.stringify(next))
+  }
+
+  const saveQuickLog = ()=>{
+    const today = new Date().toISOString().slice(0,10)
+    const daily = JSON.parse(localStorage.getItem('dailyLogs') || '{}')
+    daily[today] = quickLog
+    localStorage.setItem('dailyLogs', JSON.stringify(daily))
+    setDailyLogs(daily)
+    toast.success('Saved today\'s quick log')
   }
 
   const chartData = useMemo(()=>{
@@ -107,6 +133,37 @@ export default function Dashboard(){
     }
   },[symptomHistory])
 
+  const painFlowChart = useMemo(()=>{
+    const entries = Object.entries(dailyLogs)
+      .map(([date, v]) => ({ date, ...v }))
+      .sort((a,b)=> a.date.localeCompare(b.date))
+      .slice(-14)
+    const labels = entries.map(e=> e.date.slice(5))
+    const pain = entries.map(e=> typeof e.pain === 'number' ? e.pain : 0)
+    const flowMap = { light:1, medium:2, heavy:3 }
+    const flow = entries.map(e=> flowMap[e.flow] || 0)
+    return {
+      labels,
+      datasets:[
+        {
+          label:'Pain (0-10)',
+          data: pain,
+          borderColor:'#ef4444',
+          backgroundColor:'#fecaca',
+          yAxisID: 'y',
+        },
+        {
+          label:'Flow level (1-3)',
+          data: flow,
+          borderColor:'#3b82f6',
+          backgroundColor:'#bfdbfe',
+          borderDash:[6,4],
+          yAxisID: 'y1',
+        }
+      ]
+    }
+  },[dailyLogs])
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <header className="flex items-center justify-between">
@@ -122,6 +179,11 @@ export default function Dashboard(){
           <h3 className="font-semibold mb-3">How are you feeling today?</h3>
           <MoodSelector value={moodToday} onChange={saveMood} />
           {moodToday && <p className="mt-2 text-sm text-gray-600">Logged mood: <b className="capitalize">{moodToday}</b></p>}
+          <div className="mt-3">
+            <textarea value={moodNote} onChange={e=>setMoodNote(e.target.value)}
+              placeholder="Add a short note about your day (optional)" className="w-full border rounded p-2" rows={2} />
+            <button onClick={saveMoodNote} className="mt-2 px-3 py-1 rounded bg-gray-800 text-white text-sm">Save note</button>
+          </div>
           <div className="mt-4">
             <Line data={chartData} options={{ scales:{ y:{ min:0, max:5 }}}} />
           </div>
@@ -157,6 +219,60 @@ export default function Dashboard(){
         <div className="bg-white rounded p-4 shadow">
           <h3 className="font-semibold mb-2">Symptom frequency</h3>
           <Line data={symptomChart} options={{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true }}}} />
+        </div>
+        <div className="bg-white rounded p-4 shadow">
+          <h3 className="font-semibold mb-2">Today’s wellness tip</h3>
+          <p className="text-sm text-gray-700">{useMemo(()=>{
+            const tips = [
+              'Sip water regularly and take 5 deep breaths.',
+              'Gentle stretching can ease cramps and boost mood.',
+              'Prioritize sleep—aim for 7–9 hours tonight.',
+              'Short walk outdoors: sunlight helps your rhythm.',
+              'Balanced snack: protein + fiber to steady energy.',
+              'Warm compress can soothe abdominal discomfort.',
+              'Limit caffeine late in the day to improve rest.'
+            ]
+            const dayIndex = Math.floor(new Date().getTime()/(1000*60*60*24)) % tips.length
+            return tips[dayIndex]
+          },[])}</p>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded p-4 shadow md:col-span-3">
+          <h3 className="font-semibold mb-3">Quick log (today)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <label className="flex items-center gap-2 border rounded p-2">
+              <input type="checkbox" checked={quickLog.period} onChange={e=>setQuickLog({...quickLog, period: e.target.checked})} />
+              <span>Today is a period day</span>
+            </label>
+            <select className="border rounded p-2" value={quickLog.flow} onChange={e=>setQuickLog({...quickLog, flow: e.target.value})}>
+              <option value="light">Flow: light</option>
+              <option value="medium">Flow: medium</option>
+              <option value="heavy">Flow: heavy</option>
+            </select>
+            <div className="border rounded p-2">
+              <label className="text-sm text-gray-600">Pain: {quickLog.pain}</label>
+              <input type="range" min="0" max="10" value={quickLog.pain} onChange={e=>setQuickLog({...quickLog, pain: Number(e.target.value)})} className="w-full" />
+            </div>
+            <button onClick={saveQuickLog} className="bg-primary-500 text-white rounded px-3 py-2">Save quick log</button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Saved locally for now. We can sync this to your account later.</p>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded p-4 shadow md:col-span-3">
+          <h3 className="font-semibold mb-3">Pain & flow trend (14 days)</h3>
+          <Line data={painFlowChart} options={{
+            responsive: true,
+            interaction: { mode:'index', intersect:false },
+            stacked: false,
+            scales: {
+              y: { type: 'linear', display: true, position: 'left', min:0, max:10 },
+              y1: { type: 'linear', display: true, position: 'right', min:0, max:3, grid: { drawOnChartArea: false } },
+            }
+          }} />
         </div>
       </section>
     </div>
