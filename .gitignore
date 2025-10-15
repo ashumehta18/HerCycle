@@ -1,37 +1,29 @@
+############################
 # Dependencies
 node_modules/
-client/node_modules/
-server/node_modules/
+**/node_modules/
 
+############################
 # Builds
 dist/
 client/dist/
 build/
 
-# Env files
+############################
+# Env files (do not commit secrets)
 .env
+*.env
 server/.env
 client/.env
 
-# Logs
-npm-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# IDE/editor
-.vscode/
-.DS_Store# Dependencies
-node_modules/
-**/node_modules/
-
+############################
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Env
-server/.env
-client/.env
-
-# Build
-client/dist/
+############################
+# IDE/editor and OS files
+.vscode/
+.DS_Store

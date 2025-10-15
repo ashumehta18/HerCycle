@@ -4,6 +4,7 @@ import api from '../utils/api'
 import { Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 import { toast } from 'react-toastify'
+import Tilt3D from '../components/Tilt3D'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 function MoodSelector({ onChange, value }){
@@ -19,7 +20,7 @@ function MoodSelector({ onChange, value }){
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {moods.map(m=> (
         <button key={m.key} onClick={()=>onChange(m.key)}
-          className={`p-2 rounded border text-left ${value===m.key?'bg-primary-100 border-primary-400':'hover:bg-pink-50'}`}>
+          className={`p-2 rounded-full border text-left transition shadow-sm ${value===m.key?'bg-pink-100 border-pink-400 ring-1 ring-pink-300':'hover:bg-pink-50 border-gray-200'}`}>
           {m.label}
         </button>
       ))}
@@ -166,6 +167,23 @@ export default function Dashboard(){
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Period Mood Booster */}
+      <Tilt3D maxTilt={14} scale={1.03}>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white p-5 shadow-xl ring-1 ring-white/10">
+        <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-28 h-28 rounded-full bg-white/10 blur-xl" />
+        <div className="relative">
+          <h2 className="text-xl sm:text-2xl font-semibold">Hey {user?.name?.split(' ')[0] || 'there'}, let’s lift your mood 💗</h2>
+          <p className="text-sm text-white/90 mt-1">Pick one tiny action now—your future self will thank you.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={()=>{ setMoodToday('calm'); saveMood('calm') }} className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur">1 min deep breaths</button>
+            <button onClick={()=>{ setQuickLog(q=>({...q, pain: Math.max(0,(q?.pain||0)-1)})); }} className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur">Warm compress</button>
+            <button onClick={()=>{ setMoodNote('Grateful for…'); }} className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur">Note 1 gratitude</button>
+            <a href="#quick-log" className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur">Save today’s log</a>
+          </div>
+        </div>
+      </div>
+      </Tilt3D>
       <header className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Welcome, {user?.name}</h2>
@@ -175,7 +193,7 @@ export default function Dashboard(){
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 bg-white rounded p-4 shadow">
+        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
           <h3 className="font-semibold mb-3">How are you feeling today?</h3>
           <MoodSelector value={moodToday} onChange={saveMood} />
           {moodToday && <p className="mt-2 text-sm text-gray-600">Logged mood: <b className="capitalize">{moodToday}</b></p>}
@@ -187,9 +205,9 @@ export default function Dashboard(){
           <div className="mt-4">
             <Line data={chartData} options={{ scales:{ y:{ min:0, max:5 }}}} />
           </div>
-        </div>
+        </div></Tilt3D>
 
-        <div className="bg-white rounded p-4 shadow">
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
           <h3 className="font-semibold mb-2">Upcoming Reminders</h3>
           <ul className="space-y-2">
             {reminders.map((r,i)=> (
@@ -200,11 +218,11 @@ export default function Dashboard(){
             ))}
             {!reminders.length && <li className="text-gray-500">No reminders yet.</li>}
           </ul>
-        </div>
+        </div></Tilt3D>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 bg-white rounded p-4 shadow">
+        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
           <h3 className="font-semibold mb-3">Symptoms today</h3>
           <div className="flex flex-wrap gap-2">
             {['cramps','headache','bloating','acne','fatigue'].map(s => (
@@ -215,12 +233,12 @@ export default function Dashboard(){
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-2">Toggles are saved locally for now.</p>
-        </div>
-        <div className="bg-white rounded p-4 shadow">
+        </div></Tilt3D>
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
           <h3 className="font-semibold mb-2">Symptom frequency</h3>
           <Line data={symptomChart} options={{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true }}}} />
-        </div>
-        <div className="bg-white rounded p-4 shadow">
+        </div></Tilt3D>
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
           <h3 className="font-semibold mb-2">Today’s wellness tip</h3>
           <p className="text-sm text-gray-700">{useMemo(()=>{
             const tips = [
@@ -235,13 +253,13 @@ export default function Dashboard(){
             const dayIndex = Math.floor(new Date().getTime()/(1000*60*60*24)) % tips.length
             return tips[dayIndex]
           },[])}</p>
-        </div>
+        </div></Tilt3D>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded p-4 shadow md:col-span-3">
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 md:col-span-3">
           <h3 className="font-semibold mb-3">Quick log (today)</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div id="quick-log" className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <label className="flex items-center gap-2 border rounded p-2">
               <input type="checkbox" checked={quickLog.period} onChange={e=>setQuickLog({...quickLog, period: e.target.checked})} />
               <span>Today is a period day</span>
@@ -258,11 +276,11 @@ export default function Dashboard(){
             <button onClick={saveQuickLog} className="bg-primary-500 text-white rounded px-3 py-2">Save quick log</button>
           </div>
           <p className="text-xs text-gray-500 mt-2">Saved locally for now. We can sync this to your account later.</p>
-        </div>
+        </div></Tilt3D>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded p-4 shadow md:col-span-3">
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 md:col-span-3">
           <h3 className="font-semibold mb-3">Pain & flow trend (14 days)</h3>
           <Line data={painFlowChart} options={{
             responsive: true,
@@ -273,7 +291,7 @@ export default function Dashboard(){
               y1: { type: 'linear', display: true, position: 'right', min:0, max:3, grid: { drawOnChartArea: false } },
             }
           }} />
-        </div>
+        </div></Tilt3D>
       </section>
     </div>
   )
