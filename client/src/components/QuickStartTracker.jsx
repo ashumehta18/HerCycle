@@ -113,10 +113,31 @@ function makeICS(periodStarts){
 
 export default function QuickStartTracker(){
   const today = new Date()
-  const [lastDate, setLastDate] = useState(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
-  const [periodLen, setPeriodLen] = useState(5)
-  const [cycleLen, setCycleLen] = useState(28)
+  // hydrate from localStorage lazily
+  const [lastDate, setLastDate] = useState(()=>{
+    const s = typeof window!== 'undefined' ? localStorage.getItem('qs_lastDate') : null
+    const d = s ? new Date(s) : new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    return isNaN(d.getTime()) ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : d
+  })
+  const [periodLen, setPeriodLen] = useState(()=>{
+    const s = typeof window!== 'undefined' ? Number(localStorage.getItem('qs_periodLen')) : NaN
+    return Number.isFinite(s) && s>=1 && s<=14 ? s : 5
+  })
+  const [cycleLen, setCycleLen] = useState(()=>{
+    const s = typeof window!== 'undefined' ? Number(localStorage.getItem('qs_cycleLen')) : NaN
+    return Number.isFinite(s) && s>=21 && s<=45 ? s : 28
+  })
   const calRef = useRef(null)
+
+  // persist on change
+  useMemo(()=>{
+    try{
+      localStorage.setItem('qs_lastDate', fmt(lastDate))
+      localStorage.setItem('qs_periodLen', String(periodLen))
+      localStorage.setItem('qs_cycleLen', String(cycleLen))
+    }catch{}
+    return null
+  }, [lastDate, periodLen, cycleLen])
 
   const { months, monthData, predictions, icsHref } = useMemo(()=>{
     const months = monthRange(lastDate)

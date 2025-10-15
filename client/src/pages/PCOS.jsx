@@ -1,29 +1,154 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import api from '../utils/api'
+import ResourceGrid from '../components/ResourceGrid'
+
+const fields = [
+  { key:'cycleIrregularity', title:'Irregular cycles', desc:'Cycles longer than 35 days, very short cycles, or unpredictable timing.' },
+  { key:'acne', title:'Persistent acne', desc:'Adult acne or acne that worsens around ovulation or period.' },
+  { key:'hirsutism', title:'Hair growth (hirsutism)', desc:'Excess facial/body hair growth.' },
+  { key:'weightGain', title:'Weight gain or difficulty losing', desc:'Especially around abdomen.' },
+  { key:'insulinResistance', title:'Insulin resistance', desc:'Sugar crashes, A1C concerns, or clinical notes.' },
+  { key:'familyHistory', title:'Family history', desc:'Close relatives diagnosed with PCOS.' },
+]
+
+function scoreFromForm(f){
+  // Keep weights in sync with server/controller
+  return (f.cycleIrregularity?2:0)
+    + (f.acne?1:0)
+    + (f.hirsutism?2:0)
+    + (f.weightGain?1:0)
+    + (f.insulinResistance?2:0)
+    + (f.familyHistory?1:0)
+}
+
+function riskFromScore(score){
+  return score>=6 ? 'High' : score>=3 ? 'Moderate' : 'Low'
+}
+
+function riskStyle(risk){
+  if(risk==='High') return 'bg-rose-100 text-rose-700 border-rose-200'
+  if(risk==='Moderate') return 'bg-amber-100 text-amber-700 border-amber-200'
+  return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+}
 
 export default function PCOS(){
   const { token } = useSelector(s=>s.auth)
   const [form, setForm] = useState({ cycleIrregularity:false, acne:false, hirsutism:false, weightGain:false, insulinResistance:false, familyHistory:false })
   const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const liveScore = useMemo(()=> scoreFromForm(form), [form])
+  const liveRisk = useMemo(()=> riskFromScore(liveScore), [liveScore])
+  const livePct = Math.min(100, Math.round((liveScore/8)*100)) // 8 = max weighted score
+
   const submit = async (e)=>{
     e.preventDefault()
-    const { data } = await api.post('/pcos/analyze', form, { headers:{ Authorization:`Bearer ${token}` } })
-    setResult(data)
+    setLoading(true); setError('')
+    try{
+      let data
+      if(token){
+        const res = await api.post('/pcos/analyze', form, { headers:{ Authorization:`Bearer ${token}` } })
+        data = res.data
+      }else{
+        // fallback local computation
+        const score = scoreFromForm(form)
+        data = { score, risk: riskFromScore(score), fallback:true }
+      }
+      setResult(data)
+    }catch(err){
+      // final fallback to local compute
+      const score = scoreFromForm(form)
+      setResult({ score, risk:riskFromScore(score), fallback:true })
+      setError('Using local estimate (server unreachable).')
+    }finally{
+      setLoading(false)
+    }
   }
+
+  const toggle = (key)=> setForm(prev=> ({...prev, [key]: !prev[key]}))
+  const reset = ()=> { setForm({ cycleIrregularity:false, acne:false, hirsutism:false, weightGain:false, insulinResistance:false, familyHistory:false }); setResult(null); setError('') }
+
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h2 className="text-2xl font-semibold">PCOS Risk Analyzer</h2>
-      <form className="space-y-2" onSubmit={submit}>
-        {Object.keys(form).map(k=> (
-          <label key={k} className="flex items-center gap-2">
-            <input type="checkbox" checked={form[k]} onChange={e=>setForm({...form,[k]:e.target.checked})} />
-            <span className="capitalize">{k.replace(/([A-Z])/g,' $1')}</span>
-          </label>
-        ))}
-        <button className="bg-primary-500 text-white p-2 rounded">Check Risk</button>
-      </form>
-      {result && <div className="p-4 bg-white rounded shadow">Risk: <b>{result.risk}</b> (Score: {result.score})</div>}
+    <div className="max-w-4xl mx-auto p-4 md:p-6">
+      {/* header */}
+      <div className="bg-gradient-to-r from-primary-50 to-pink-50 dark:from-gray-800/40 dark:to-gray-800/20 rounded-2xl p-6 md:p-8 border border-pink-100 dark:border-gray-700">
+        <h1 className="text-3xl md:text-4xl font-extrabold">PCOS Risk Check</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300 max-w-2xl">A supportive, informational tool—not medical advice. Review common indicators and get a gentle risk snapshot you can discuss with a clinician.</p>
+      </div>
+
+      {/* content */}
+      <div className="mt-6 grid lg:grid-cols-[2fr_1fr] gap-6">
+        {/* form */}
+        <form onSubmit={submit} className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {fields.map(f=> (
+              <button type="button" key={f.key} onClick={()=>toggle(f.key)}
+                className={`text-left rounded-xl border shadow-sm p-4 hover:shadow transition ${form[f.key]?'border-primary-300 ring-2 ring-primary-200 bg-primary-50':'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">{f.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{f.desc}</p>
+                  </div>
+                  <span className={`mt-1 inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${form[f.key]?'bg-primary-500 text-white':'bg-gray-200 text-gray-700'}`}>{form[f.key]?'Yes':'No'}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {error && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">{error}</div>}
+
+          <div className="flex flex-wrap gap-3">
+            <button disabled={loading} className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded shadow disabled:opacity-60">{loading? 'Checking…' : 'Check Risk'}</button>
+            <button type="button" onClick={reset} className="px-4 py-2 rounded border">Reset</button>
+          </div>
+        </form>
+
+        {/* live preview */}
+        <aside className="rounded-2xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-4 h-fit sticky top-4">
+          <h4 className="font-semibold">Live preview</h4>
+          <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full border ${riskStyle(liveRisk)}`}>
+            <span className="w-2 h-2 rounded-full bg-current"></span>
+            <span>{liveRisk} risk</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-gray-600 dark:text-gray-300">Estimated score: {liveScore} / 8</div>
+            <div className="mt-2 h-2 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div className={`h-full ${liveRisk==='High'?'bg-rose-500': liveRisk==='Moderate'?'bg-amber-500':'bg-emerald-500'}`} style={{width: livePct+'%'}} />
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-500">This preview updates as you toggle options. Press “Check Risk” to save the result from the server when signed in.</p>
+          {result && (
+            <div className="mt-4 border-t pt-4">
+              <div className="text-sm">Result</div>
+              <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full border ${riskStyle(result.risk)}`}>
+                <span className="w-2 h-2 rounded-full bg-current"></span>
+                <span>{result.risk} risk</span>
+              </div>
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">Score: {result.score} {result.fallback && <span className="ml-2 text-xs text-amber-600">(local estimate)</span>}</div>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* tips */}
+      <div className="mt-8 grid md:grid-cols-3 gap-4">
+        <TipCard title="Lifestyle support">Gentle movement, balanced meals, sleep, and stress care can all help. Small steps count.</TipCard>
+        <TipCard title="Talk to a clinician">This tool can’t diagnose PCOS. If you’re concerned, consider discussing symptoms with a healthcare professional.</TipCard>
+        <TipCard title="Track patterns">Use the Dashboard to log mood, symptoms, and cycles—you’ll build a helpful picture over time.</TipCard>
+      </div>
+
+      <ResourceGrid />
+    </div>
+  )
+}
+
+function TipCard({ title, children }){
+  return (
+    <div className="rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-4">
+      <h5 className="font-semibold">{title}</h5>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{children}</p>
     </div>
   )
 }
