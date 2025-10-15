@@ -1,0 +1,4 @@
+/* Tailwind via CDN is configured in index.html. Keep minimal base styles here. */
+:root { color-scheme: light dark; }
+body { background-color: #fff1f5; color: #111827; }
+.dark body { background-color: #111827; color: #f3f4f6; }
