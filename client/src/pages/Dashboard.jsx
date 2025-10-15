@@ -31,11 +31,15 @@ export default function Dashboard(){
   const [reminders, setReminders] = useState([])
   const [moodToday, setMoodToday] = useState('')
   const [moodHistory, setMoodHistory] = useState([]) // [{date:'YYYY-MM-DD', mood:'happy'}]
+  const [symptomsToday, setSymptomsToday] = useState([]) // ['cramps','headache']
+  const [symptomHistory, setSymptomHistory] = useState([]) // [{date, symptoms:[] }]
 
   // Load local mood history
   useEffect(()=>{
     const h = localStorage.getItem('moodHistory')
     if(h) setMoodHistory(JSON.parse(h))
+    const s = localStorage.getItem('symptomHistory')
+    if(s) setSymptomHistory(JSON.parse(s))
   },[])
 
   // Fetch reminders but tolerate API unavailability
@@ -60,6 +64,17 @@ export default function Dashboard(){
     localStorage.setItem('moodHistory', JSON.stringify(next))
   }
 
+  const toggleSymptom = (key)=>{
+    const today = new Date().toISOString().slice(0,10)
+    const current = new Set(symptomsToday)
+    if(current.has(key)) current.delete(key); else current.add(key)
+    const updated = Array.from(current)
+    setSymptomsToday(updated)
+    const next = [...symptomHistory.filter(x=>x.date!==today), { date: today, symptoms: updated }]
+    setSymptomHistory(next)
+    localStorage.setItem('symptomHistory', JSON.stringify(next))
+  }
+
   const chartData = useMemo(()=>{
     const last14 = [...moodHistory].sort((a,b)=> a.date.localeCompare(b.date)).slice(-14)
     const labels = last14.map(x=> x.date.slice(5))
@@ -75,6 +90,22 @@ export default function Dashboard(){
       }]
     }
   },[moodHistory])
+
+  const symptomChart = useMemo(()=>{
+    const last14 = [...symptomHistory].sort((a,b)=> a.date.localeCompare(b.date)).slice(-14)
+    const labels = last14.map(x=> x.date.slice(5))
+    const symptomKeys = ['cramps','headache','bloating','acne','fatigue']
+    const counts = symptomKeys.map(k=> last14.reduce((acc, d)=> acc + (d.symptoms?.includes(k)?1:0), 0))
+    return {
+      labels: symptomKeys.map(k=> k),
+      datasets:[{
+        label:'Symptom frequency (last 14 days)',
+        data: counts,
+        borderColor:'#0ea5e9',
+        backgroundColor:'#bae6fd'
+      }]
+    }
+  },[symptomHistory])
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -107,6 +138,25 @@ export default function Dashboard(){
             ))}
             {!reminders.length && <li className="text-gray-500">No reminders yet.</li>}
           </ul>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 bg-white rounded p-4 shadow">
+          <h3 className="font-semibold mb-3">Symptoms today</h3>
+          <div className="flex flex-wrap gap-2">
+            {['cramps','headache','bloating','acne','fatigue'].map(s => (
+              <button key={s} onClick={()=>toggleSymptom(s)}
+                className={`px-3 py-1 rounded border capitalize ${symptomsToday.includes(s)?'bg-blue-100 border-blue-400':'hover:bg-blue-50'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Toggles are saved locally for now.</p>
+        </div>
+        <div className="bg-white rounded p-4 shadow">
+          <h3 className="font-semibold mb-2">Symptom frequency</h3>
+          <Line data={symptomChart} options={{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true }}}} />
         </div>
       </section>
     </div>
