@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
+import DayModal from './DayModal'
 
 function addDays(date, days){
   const d = new Date(date)
@@ -129,6 +130,20 @@ export default function QuickStartTracker(){
   })
   const calRef = useRef(null)
 
+  const [dailyLogs, setDailyLogs] = useState(()=>{
+    try{
+      const s = typeof window !== 'undefined' ? localStorage.getItem('dailyLogs') : null
+      return s ? JSON.parse(s) : {}
+    }catch{ return {} }
+  })
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalDate, setModalDate] = useState(null)
+  const [modalValue, setModalValue] = useState(null)
+
+  useEffect(()=>{
+    try{ localStorage.setItem('dailyLogs', JSON.stringify(dailyLogs)) }catch{}
+  }, [dailyLogs])
+
   // persist on change
   useMemo(()=>{
     try{
@@ -175,67 +190,98 @@ export default function QuickStartTracker(){
     else if(predictions.ovu.has(key)) badge = 'bg-green-500'
     else if(predictions.pre.has(key)) badge = 'bg-amber-400'
     else if(predictions.post.has(key)) badge = 'bg-violet-400'
+    // tooltip text
+    const label = predictions.period.has(key) ? 'Period day' : predictions.ovu.has(key) ? 'Peak ovulation' : predictions.pre.has(key) ? 'Pre-period' : predictions.post.has(key) ? 'Post-period' : 'Normal'
+
+    const hasEntry = !!dailyLogs[key]
+
+    const openForDate = ()=>{
+      setModalDate(key)
+      setModalValue(dailyLogs[key]||{})
+      setModalOpen(true)
+    }
 
     return (
-      <div className="h-8 md:h-10 flex items-center justify-center">
-        <div className={`relative w-7 h-7 flex items-center justify-center text-xs rounded-full ${badge? 'text-white '+badge : 'text-gray-700 dark:text-gray-200'}`}>
-          {date.getDate()}
+      <div className="h-10 md:h-12 flex items-center justify-center">
+        <div className="relative group">
+          <button onClick={openForDate} aria-label={`${label} ${date.toDateString()}`} title={`${label} • ${date.toLocaleDateString()}`} className="relative w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-xs rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-300 hover:scale-105 transition-transform">
+            <span className={`inline-flex items-center justify-center w-full h-full rounded-full ${badge? 'text-white '+badge : 'text-gray-700 dark:text-gray-200 bg-transparent'}`}>
+              {date.getDate()}
+            </span>
+          </button>
+
+          {hasEntry && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary-600 ring-1 ring-white" aria-hidden />}
+
+          <div role="status" className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 text-white text-xs px-2 py-1 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            {label} • {date.toLocaleDateString()}
+          </div>
         </div>
       </div>
     )
+  }
+
+  const handleSaveDay = (form)=>{
+    if(!modalDate) return
+    setDailyLogs(prev=>{
+      const next = {...prev, [modalDate]: form}
+      return next
+    })
+    setModalOpen(false)
   }
 
   return (
     <section className="mt-10">
       <h2 className="text-center text-2xl md:text-3xl font-extrabold text-primary-600">Answer 3 quick questions and preview your tracker</h2>
 
-      <div className="mt-4 grid md:grid-cols-3 gap-3">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-300">Date of your last period?</p>
-          <input type="date" className="mt-2 w-full rounded border p-2"
+      <div className="mt-4 grid md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-white to-pink-50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl p-5 shadow-sm border">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date of your last period</label>
+          <input type="date" className="mt-3 w-full rounded-lg border px-3 py-2 bg-white dark:bg-gray-900"
             value={fmt(lastDate)}
             onChange={(e)=> setLastDate(new Date(e.target.value))} />
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-300">How long did it last?</p>
-          <div className="mt-2 flex items-center gap-2">
-            <button className="px-2 py-1 rounded bg-gray-100" onClick={()=> setPeriodLen(Math.max(1, periodLen-1))}>-</button>
-            <input type="number" min={1} max={14} className="w-full rounded border p-2 text-center" value={periodLen}
+
+        <div className="bg-gradient-to-br from-white to-pink-50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl p-5 shadow-sm border">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">How long did it last?</label>
+          <div className="mt-3 flex items-center gap-2">
+            <button aria-label="decrease" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" onClick={()=> setPeriodLen(Math.max(1, periodLen-1))}>−</button>
+            <input type="number" min={1} max={14} className="w-full rounded-lg border px-3 py-2 text-center" value={periodLen}
               onChange={(e)=> setPeriodLen(Math.max(1, Math.min(14, Number(e.target.value)||1)))} />
-            <span>days</span>
-            <button className="px-2 py-1 rounded bg-gray-100" onClick={()=> setPeriodLen(Math.min(14, periodLen+1))}>+</button>
+            <span className="text-sm text-gray-600">days</span>
+            <button aria-label="increase" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" onClick={()=> setPeriodLen(Math.min(14, periodLen+1))}>+</button>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-300">Usual cycle length?</p>
-          <div className="mt-2 flex items-center gap-2">
-            <button className="px-2 py-1 rounded bg-gray-100" onClick={()=> setCycleLen(Math.max(21, cycleLen-1))}>-</button>
-            <input type="number" min={21} max={45} className="w-full rounded border p-2 text-center" value={cycleLen}
+
+        <div className="bg-gradient-to-br from-white to-pink-50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl p-5 shadow-sm border">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Usual cycle length</label>
+          <div className="mt-3 flex items-center gap-2">
+            <button aria-label="decrease" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" onClick={()=> setCycleLen(Math.max(21, cycleLen-1))}>−</button>
+            <input type="number" min={21} max={45} className="w-full rounded-lg border px-3 py-2 text-center" value={cycleLen}
               onChange={(e)=> setCycleLen(Math.max(21, Math.min(45, Number(e.target.value)||28)))} />
-            <span>days</span>
-            <button className="px-2 py-1 rounded bg-gray-100" onClick={()=> setCycleLen(Math.min(45, cycleLen+1))}>+</button>
+            <span className="text-sm text-gray-600">days</span>
+            <button aria-label="increase" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" onClick={()=> setCycleLen(Math.min(45, cycleLen+1))}>+</button>
           </div>
         </div>
       </div>
 
-      <div className="text-center mt-3">
-        <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded shadow">Track Now</button>
+      <div className="text-center mt-4">
+        <button className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-full shadow-md">Track Now</button>
       </div>
 
-      <div ref={calRef} className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow p-4">
-        <div className="grid md:grid-cols-3 gap-4">
+      <div ref={calRef} className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow p-5 border">
+        <div className="grid md:grid-cols-3 gap-6">
           {months.map((m, idx)=>{
             const { matrix } = monthData[idx]
             const title = m.toLocaleString(undefined, { month:'long', year:'numeric' })
             return (
               <div key={idx}>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-semibold">{title}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-200">{title}</h3>
                 </div>
-                <div className="grid grid-cols-7 text-xs text-gray-500 mb-1">
+                <div className="grid grid-cols-7 text-xs text-gray-500 mb-2">
                   {['S','M','T','W','T','F','S'].map(d=> <div className="text-center py-1" key={d}>{d}</div>)}
                 </div>
-                <div className="grid grid-cols-7 gap-y-1">
+                <div className="grid grid-cols-7 gap-y-2">
                   {matrix.flat().map((d,i)=> <DayCell key={i} date={d} />)}
                 </div>
               </div>
@@ -253,8 +299,8 @@ export default function QuickStartTracker(){
         <p className="mt-2 text-xs text-gray-500">Note: This tracker is an estimation and may vary from your unique cycle.</p>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <button onClick={onPrint} className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Print</button>
-          <a href={icsHref} download="hercycle-predicted.ics" className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Add to Calendar (.ics)</a>
+          <button onClick={onPrint} className="px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 border">Print</button>
+          <a href={icsHref} download="hercycle-predicted.ics" className="px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 border">Add to Calendar (.ics)</a>
         </div>
       </div>
     </section>

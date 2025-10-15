@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import api from '../utils/api'
 import { useNavigate } from 'react-router-dom'
-import PcosIntro from '../components/PcosIntro'
+// Removed theoretical intro; replaced with practical action panel below
 
 const fields = [
   { key:'cycleIrregularity', title:'Irregular cycles', desc:'Cycles longer than 35 days, very short cycles, or unpredictable timing.' },
@@ -82,8 +82,54 @@ export default function PCOS(){
         <p className="mt-2 text-gray-600 dark:text-gray-300 max-w-2xl">A supportive, informational tool—not medical advice. Review common indicators and get a gentle risk snapshot you can discuss with a clinician.</p>
       </div>
 
-      {/* friendly intro */}
-      <PcosIntro />
+      {/* Practical quick-actions (replaces long theoretical intro) */}
+      <section className="mt-6 grid gap-4">
+        <div className="rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-5">
+          <h2 className="text-xl font-semibold">What to do next — quick, practical steps</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">This short checklist helps you turn awareness into actions you can try today. Results are supportive, not diagnostic.</p>
+
+          <div className="mt-4 grid sm:grid-cols-2 gap-3">
+            <div className="rounded-lg p-3 border bg-green-50 dark:bg-green-900/20">
+              <h4 className="font-semibold">Track consistently</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">Log periods, symptoms, mood and weight for 2–3 cycles — patterns help clinicians and the app give better insights.</p>
+            </div>
+            <div className="rounded-lg p-3 border bg-blue-50 dark:bg-blue-900/20">
+              <h4 className="font-semibold">Small diet changes</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">Focus on whole foods, reduce refined carbs and try smaller, frequent meals to stabilise energy.</p>
+            </div>
+            <div className="rounded-lg p-3 border bg-yellow-50 dark:bg-yellow-900/10">
+              <h4 className="font-semibold">Move a little daily</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">Aim for 20–30 minutes of moderate activity most days — brisk walking, yoga, or strength-focused sessions help.</p>
+            </div>
+            <div className="rounded-lg p-3 border bg-pink-50 dark:bg-pink-900/10">
+              <h4 className="font-semibold">Sleep & stress</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">Prioritise 7–8 hours and use small stress tools (breathing, 10‑minute walks) when overwhelmed.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button onClick={()=>navigate('/tracker')} className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded">Open Tracker</button>
+            <button onClick={handleShowTips} className="px-4 py-2 rounded border">Practical tips</button>
+            <button onClick={()=>navigate('/consult')} className="px-4 py-2 rounded bg-pink-600 text-white">Consult a clinician</button>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-4">
+          <h3 className="font-semibold">Tailored recommendations</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Based on the quick snapshot below, here are concise, practical suggestions.</p>
+          <div className="mt-3">
+            {(()=>{
+              const recs = getPracticalRecommendations(liveRisk)
+              return recs.map((r,i)=> (
+                <div key={i} className="mt-2 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-semibold">{i+1}</div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300">{r}</div>
+                </div>
+              ))
+            })()}
+          </div>
+        </div>
+      </section>
 
       {/* content */}
       <div className="mt-6 grid lg:grid-cols-[2fr_1fr] gap-6">
@@ -160,6 +206,30 @@ export default function PCOS(){
       {/* tips content moved to /tips page */}
     </div>
   )
+}
+
+// Practical short recommendations shown on the page.
+function getPracticalRecommendations(risk){
+  if(risk === 'High'){
+    return [
+      'Book a clinical consult: bring 2–3 cycle logs and recent weight/BP records.',
+      'Ask about blood tests: fasting glucose, lipid panel, and total/free testosterone.',
+      'Consider a structured plan: short-term diet support + activity + specialist referral.'
+    ]
+  }
+  if(risk === 'Moderate'){
+    return [
+      'Track for 2–3 cycles: include periods, symptoms and a few fasting mornings for trends.',
+      'Try modest carb reduction and add protein at meals to improve energy swings.',
+      'Increase consistency of movement: 20–30 minutes, 4–5 days per week.'
+    ]
+  }
+  // Low
+  return [
+    'Keep tracking and note any changes — early patterns make later conversations easier.',
+    'Focus on sleep hygiene and small, maintainable diet tweaks.',
+    'Use stress-reducing micro-habits: 5–10 minute breathing, short walks, or stretching.'
+  ]
 }
 
 function TipCard({ title, children }){

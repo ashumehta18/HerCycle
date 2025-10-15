@@ -5,6 +5,7 @@ import { Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 import { toast } from 'react-toastify'
 import Tilt3D from '../components/Tilt3D'
+import DashboardIllustration from '../components/DashboardIllustration'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 function MoodSelector({ onChange, value }){
@@ -166,7 +167,8 @@ export default function Dashboard(){
   },[dailyLogs])
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="relative max-w-5xl mx-auto p-6 space-y-6">
+      <DashboardIllustration />
       {/* Period Mood Booster */}
       <Tilt3D maxTilt={14} scale={1.03}>
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white p-5 shadow-xl ring-1 ring-white/10">
@@ -192,8 +194,8 @@ export default function Dashboard(){
         <a href="/tracker" className="bg-primary-500 text-white px-3 py-2 rounded">+ Add cycle</a>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
+  <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 h-full">
           <h3 className="font-semibold mb-3">How are you feeling today?</h3>
           <MoodSelector value={moodToday} onChange={saveMood} />
           {moodToday && <p className="mt-2 text-sm text-gray-600">Logged mood: <b className="capitalize">{moodToday}</b></p>}
@@ -207,7 +209,7 @@ export default function Dashboard(){
           </div>
         </div></Tilt3D>
 
-        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
+  <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 h-full">
           <h3 className="font-semibold mb-2">Upcoming Reminders</h3>
           <ul className="space-y-2">
             {reminders.map((r,i)=> (
@@ -221,8 +223,8 @@ export default function Dashboard(){
         </div></Tilt3D>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
+  <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        <Tilt3D glare={false}><div className="md:col-span-2 bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 h-full">
           <h3 className="font-semibold mb-3">Symptoms today</h3>
           <div className="flex flex-wrap gap-2">
             {['cramps','headache','bloating','acne','fatigue'].map(s => (
@@ -234,11 +236,11 @@ export default function Dashboard(){
           </div>
           <p className="text-xs text-gray-500 mt-2">Toggles are saved locally for now.</p>
         </div></Tilt3D>
-        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
+  <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 h-full">
           <h3 className="font-semibold mb-2">Symptom frequency</h3>
           <Line data={symptomChart} options={{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true }}}} />
         </div></Tilt3D>
-        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100">
+  <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 h-full">
           <h3 className="font-semibold mb-2">Today’s wellness tip</h3>
           <p className="text-sm text-gray-700">{useMemo(()=>{
             const tips = [
@@ -256,8 +258,8 @@ export default function Dashboard(){
         </div></Tilt3D>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 md:col-span-3">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 md:col-span-2 lg:col-span-3 h-full">
           <h3 className="font-semibold mb-3">Quick log (today)</h3>
           <div id="quick-log" className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <label className="flex items-center gap-2 border rounded p-2">
@@ -279,7 +281,7 @@ export default function Dashboard(){
         </div></Tilt3D>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Tilt3D glare={false}><div className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-gray-100 md:col-span-3">
           <h3 className="font-semibold mb-3">Pain & flow trend (14 days)</h3>
           <Line data={painFlowChart} options={{
