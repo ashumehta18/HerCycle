@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../redux/slices/authSlice'
+import Logo from './Logo'
 
 export default function Navbar(){
   const { user } = useSelector(s=>s.auth)
@@ -16,7 +17,9 @@ export default function Navbar(){
   return (
     <nav className="px-4 py-3 bg-white/80 dark:bg-gray-900/70 backdrop-blur sticky top-0 z-10 border-b">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link to="/" className="text-2xl font-hand text-primary-600">HerCycle</Link>
+        <Link to="/" className="flex items-center">
+          <Logo />
+        </Link>
         <div className="flex items-center gap-4">
           <Nav to="/tracker" label="Tracker" />
           <Nav to="/pcos" label="PCOS" />

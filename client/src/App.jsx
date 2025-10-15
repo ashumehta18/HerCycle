@@ -6,6 +6,7 @@ import PCOS from './pages/PCOS'
 import Chatbot from './pages/Chatbot'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Tips from './pages/Tips'
 import About from './pages/About'
@@ -25,7 +26,8 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
   <Route path="/tips" element={<Tips />} />
   <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
+  <Route path="/login" element={<Login />} />
+  <Route path="/forgot" element={<ForgotPassword />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
