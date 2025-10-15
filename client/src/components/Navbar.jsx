@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../redux/slices/authSlice'
@@ -14,29 +14,43 @@ export default function Navbar(){
     else { root.classList.remove('dark'); localStorage.setItem('theme','light') }
   },[dark])
   return (
-    <nav className="px-4 py-3 bg-white/80 backdrop-blur sticky top-0 z-10 border-b">
+    <nav className="px-4 py-3 bg-white/80 dark:bg-gray-900/70 backdrop-blur sticky top-0 z-10 border-b">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link to="/" className="text-2xl font-hand text-primary-600">HerCycle</Link>
         <div className="flex items-center gap-4">
-          <Link to="/tracker" className="hover:text-primary-600">Tracker</Link>
-          <Link to="/pcos" className="hover:text-primary-600">PCOS</Link>
-          <Link to="/chatbot" className="hover:text-primary-600">Chatbot</Link>
-          <button onClick={()=>setDark(v=>!v)} className="text-sm px-2 py-1 rounded border">
+          <Nav to="/tracker" label="Tracker" />
+          <Nav to="/pcos" label="PCOS" />
+          <Nav to="/tips" label="Tips" />
+          <Nav to="/chatbot" label="Chatbot" />
+          <button onClick={()=>setDark(v=>!v)} className="text-sm px-2 py-1 rounded border hover:bg-gray-50 dark:hover:bg-gray-800">
             {dark? 'Light' : 'Dark'}
           </button>
           {user ? (
             <>
-              <Link to="/dashboard" className="hover:text-primary-600">Dashboard</Link>
-              <button onClick={()=>dispatch(logout())} className="text-sm bg-primary-500 text-white px-3 py-1 rounded">Logout</button>
+              <Nav to="/dashboard" label="Dashboard" />
+              <button onClick={()=>dispatch(logout())} className="text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded shadow">Logout</button>
             </>
           ) : (
             <>
-              <Link to="/login">Login</Link>
-              <Link to="/signup" className="bg-primary-500 text-white px-3 py-1 rounded">Sign up</Link>
+              <NavLink to="/login" className="hover:text-primary-600">Login</NavLink>
+              <Link to="/signup" className="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded shadow">Sign up</Link>
             </>
           )}
         </div>
       </div>
     </nav>
+  )
+}
+
+function Nav({ to, label }){
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `px-2 py-1 rounded hover:text-primary-600 ${isActive ? 'text-primary-600 underline underline-offset-4' : ''}`
+      }
+    >
+      {label}
+    </NavLink>
   )
 }

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import api from '../utils/api'
-import ResourceGrid from '../components/ResourceGrid'
+import { useNavigate } from 'react-router-dom'
+import PcosIntro from '../components/PcosIntro'
 
 const fields = [
   { key:'cycleIrregularity', title:'Irregular cycles', desc:'Cycles longer than 35 days, very short cycles, or unpredictable timing.' },
@@ -38,6 +39,7 @@ export default function PCOS(){
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   const liveScore = useMemo(()=> scoreFromForm(form), [form])
   const liveRisk = useMemo(()=> riskFromScore(liveScore), [liveScore])
@@ -70,6 +72,8 @@ export default function PCOS(){
   const toggle = (key)=> setForm(prev=> ({...prev, [key]: !prev[key]}))
   const reset = ()=> { setForm({ cycleIrregularity:false, acne:false, hirsutism:false, weightGain:false, insulinResistance:false, familyHistory:false }); setResult(null); setError('') }
 
+  const handleShowTips = ()=> navigate('/tips')
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       {/* header */}
@@ -78,10 +82,17 @@ export default function PCOS(){
         <p className="mt-2 text-gray-600 dark:text-gray-300 max-w-2xl">A supportive, informational tool—not medical advice. Review common indicators and get a gentle risk snapshot you can discuss with a clinician.</p>
       </div>
 
+      {/* friendly intro */}
+      <PcosIntro />
+
       {/* content */}
       <div className="mt-6 grid lg:grid-cols-[2fr_1fr] gap-6">
         {/* form */}
         <form onSubmit={submit} className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold">What are your symptoms saying?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Toggle the cards that resonate—change anytime, this is just a gentle snapshot.</p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             {fields.map(f=> (
               <button type="button" key={f.key} onClick={()=>toggle(f.key)}
@@ -132,14 +143,21 @@ export default function PCOS(){
         </aside>
       </div>
 
-      {/* tips */}
-      <div className="mt-8 grid md:grid-cols-3 gap-4">
-        <TipCard title="Lifestyle support">Gentle movement, balanced meals, sleep, and stress care can all help. Small steps count.</TipCard>
-        <TipCard title="Talk to a clinician">This tool can’t diagnose PCOS. If you’re concerned, consider discussing symptoms with a healthcare professional.</TipCard>
-        <TipCard title="Track patterns">Use the Dashboard to log mood, symptoms, and cycles—you’ll build a helpful picture over time.</TipCard>
-      </div>
+      {/* prompt to reveal tips */}
+  <section className="mt-8 rounded-2xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Manage lifestyle with supportive tips?</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">We can show gentle, practical tips and curated reads tailored for PCOS.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleShowTips} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow">Yes, show tips</button>
+            <button onClick={()=>{}} className="px-4 py-2 rounded border hover:bg-gray-50">Not now</button>
+          </div>
+        </div>
+      </section>
 
-      <ResourceGrid />
+      {/* tips content moved to /tips page */}
     </div>
   )
 }
