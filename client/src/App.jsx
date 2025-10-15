@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard'
 import Tips from './pages/Tips'
 import About from './pages/About'
 import Report from './pages/Report'
+import Consult from './pages/Consult'
 import ProtectedRoute from './components/ProtectedRoute'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -27,7 +28,9 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
   <Route path="/tips" element={<Tips />} />
   <Route path="/about" element={<About />} />
-    <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
+  {/* Temporarily bypass ProtectedRoute for debugging the blank /report page. Revert after debugging. */}
+  <Route path="/report" element={<Report />} />
+  <Route path="/consult" element={<Consult />} />
   <Route path="/login" element={<Login />} />
   <Route path="/forgot" element={<ForgotPassword />} />
         <Route path="/signup" element={<Signup />} />

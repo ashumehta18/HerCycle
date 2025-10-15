@@ -26,6 +26,7 @@ export default function Navbar(){
           <Nav to="/tips" label="Tips" />
           <Nav to="/about" label="About" />
           <Nav to="/chatbot" label="Chatbot" />
+          <Nav to="/consult" label="Consult" />
           <button onClick={()=>setDark(v=>!v)} className="text-sm px-2 py-1 rounded border hover:bg-gray-50 dark:hover:bg-gray-800">
             {dark? 'Light' : 'Dark'}
           </button>
