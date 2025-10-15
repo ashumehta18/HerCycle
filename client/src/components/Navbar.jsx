@@ -32,6 +32,7 @@ export default function Navbar(){
           {user ? (
             <>
               <Nav to="/dashboard" label="Dashboard" />
+              <Nav to="/report" label="View Report" />
               <button onClick={()=>dispatch(logout())} className="text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded shadow">Logout</button>
             </>
           ) : (
