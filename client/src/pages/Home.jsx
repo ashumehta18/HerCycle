@@ -1,5 +1,6 @@
 import HeroCarousel from '../components/HeroCarousel'
 import FeatureCards from '../components/FeatureCards'
+import QuickStartTracker from '../components/QuickStartTracker'
 
 export default function Home(){
   return (
@@ -28,6 +29,8 @@ export default function Home(){
           </p>
         </div>
       </section>
+
+      <QuickStartTracker />
     </main>
   )
 }
