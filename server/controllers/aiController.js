@@ -70,8 +70,14 @@ async function callHuggingFace(prompt, token) {
 
 // Gemini
 async function callGemini(messages, apiKey){
+  // Simple wrapper kept for backwards compatibility; prefer callGeminiWithRetry
+  return await callGeminiWithRetry(messages, apiKey)
+}
+
+// Gemini with retry/backoff and model fallbacks
+async function callGeminiWithRetry(messages, apiKey, opts = {}){
   const genAI = new GoogleGenerativeAI(apiKey)
-  const modelCandidates = [
+  const modelCandidates = opts.modelCandidates || [
     (process.env.GEMINI_MODEL || '').trim() || 'gemini-1.5-flash',
     'gemini-1.5-flash-latest',
     'gemini-1.5-pro',
@@ -80,28 +86,49 @@ async function callGemini(messages, apiKey){
     'gemini-pro-latest',
     'gemini-1.0-pro'
   ]
+  const maxRetries = Number(opts.maxRetries ?? 2)
+  const baseDelay = Number(opts.baseDelay ?? 600)
+
+  function delay(ms){ return new Promise(r=>setTimeout(r, ms)) }
+  function jitter(n){ return Math.floor(n * (0.8 + Math.random()*0.4)) }
+
   const system = "You are a supportive women's health assistant. Provide general wellness information, not medical advice."
   const convo = messages.map(m=> `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')
   const prompt = `${system}\n\n${convo}\nAssistant:`
 
   let lastErr
   for(const modelId of modelCandidates){
-    try{
-      const model = genAI.getGenerativeModel({ model: modelId })
+    for(let attempt=0; attempt<=maxRetries; attempt++){
       try{
-        const result = await model.generateContent([{ role: 'user', parts:[{ text: prompt }]}])
-        const text = result?.response?.text?.() || result?.response?.candidates?.[0]?.content?.parts?.[0]?.text
-        if(text) return text
-      }catch(inner){
-        const result2 = await model.generateContent(prompt)
-        const text2 = result2?.response?.text?.() || result2?.response?.candidates?.[0]?.content?.parts?.[0]?.text
-        if(text2) return text2
-        throw inner
+        const model = genAI.getGenerativeModel({ model: modelId })
+        // prefer structured SDK call
+        try{
+          const result = await model.generateContent([{ role: 'user', parts:[{ text: prompt }]}])
+          const text = result?.response?.text?.() || result?.response?.candidates?.[0]?.content?.parts?.[0]?.text
+          if(text) return text
+        }catch(inner){
+          // fallback to alternate call signature
+          const result2 = await model.generateContent(prompt)
+          const text2 = result2?.response?.text?.() || result2?.response?.candidates?.[0]?.content?.parts?.[0]?.text
+          if(text2) return text2
+          throw inner
+        }
+        // If no text returned, break retry loop for this model
+        break
+      }catch(e){
+        lastErr = e
+        const status = e?.status || e?.response?.status
+        // Retry on transient server errors
+        if([429,502,503].includes(status) && attempt < maxRetries){
+          const wait = jitter(baseDelay * Math.pow(2, attempt))
+          console.warn(`[ai] Gemini model ${modelId} transient error ${status}, retrying in ${wait}ms (attempt ${attempt+1})`)
+          await delay(wait)
+          continue
+        }
+        // If 404 (model not found) move to next candidate; if other fatal status break
+        if(status && status !== 404) break
+        // otherwise continue to next attempt/model
       }
-    }catch(e){
-      lastErr = e
-      const status = e?.status || e?.response?.status
-      if(status && status !== 404) break
     }
   }
   if(lastErr) throw lastErr
@@ -168,7 +195,7 @@ export async function generateAiReportNarrative(req, res, next){
     }
     if(providerPref==='gemini'){
       if(!geminiKey) return res.status(400).json({ error:'Chat service error', detail:'CHAT_PROVIDER=gemini but GOOGLE_GEMINI_API_KEY is not set.' })
-      const reply = await callGemini(messages, geminiKey)
+      const reply = await callGeminiWithRetry(messages, geminiKey, { maxRetries: 2, baseDelay: 700 })
       return res.json({ narrative: reply })
     }
     if(providerPref==='huggingface'){
@@ -183,8 +210,12 @@ export async function generateAiReportNarrative(req, res, next){
       return res.json({ narrative: reply })
     }
     if(geminiKey){
-      const reply = await callGemini(messages, geminiKey)
-      return res.json({ narrative: reply })
+      try{
+        const reply = await callGeminiWithRetry(messages, geminiKey, { maxRetries: 2, baseDelay: 700 })
+        return res.json({ narrative: reply })
+      }catch(gErr){
+        console.warn('[ai] Gemini failed in auto mode, falling back to other providers', gErr?.message || gErr)
+      }
     }
     if (hfToken) {
       const reply = await callHuggingFace(prompt, hfToken)
